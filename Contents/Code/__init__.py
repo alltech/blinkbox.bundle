@@ -26,24 +26,19 @@ def Start():
     MediaContainer.title1 = NAME
     DirectoryItem.thumb = R(ICON)
 
+    # Cache HTTP requests for up to a day
+    HTTP.CacheTime = CACHE_1DAY
+
 # This main function will setup the displayed items. This will depend if the user is currently
 # logged in.
 def MainMenu():
     dir = MediaContainer(disabledViewModes=["Coverflow"], title1 = L('Title'))
                
     # Movies
-    dir.Append(Function(
-        DirectoryItem(
-            MovieMenu,
-            L('Movies'),
-            thumb = R(ICON))))
+    dir.Append(Function(DirectoryItem(MovieMenu, L('Movies'))))
     
     # TV Shows
-    dir.Append(Function(
-        DirectoryItem(
-            TVMenu,
-            L('TVShows'),
-            thumb = R(ICON))))
+    dir.Append(Function(DirectoryItem(TVMenu, L('TVShows'))))
     
     return dir
 
