@@ -7,8 +7,8 @@ NAME = L('Title')
 ART = 'art-default.jpg'
 ICON = 'icon-default.png'
 
-MOVIES_FREE = 'http://www.blinkbox.com/Movies/Free'
-TV_FREE = 'http://www.blinkbox.com/TV/Free'
+MOVIES_FREE = 'http://www.blinkbox.com/Movies/Catalogue/Free'
+TV_FREE = 'http://www.blinkbox.com/TV/Catalogue/Free'
 
 ####################################################################################################
 
