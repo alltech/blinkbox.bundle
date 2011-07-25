@@ -3,5 +3,8 @@
     "Movies" : "Movies",
     "TVShows": "TV Shows",
     "Preferences": "Preferences",
-    "Season": "Season"
+    "Season": "Season",
+    "Search": "Search",
+    "SearchPrompt": "Please enter the title you would like to search...",
+    "ErrorNoTitles": "There are no titles available for the requested item"
 }

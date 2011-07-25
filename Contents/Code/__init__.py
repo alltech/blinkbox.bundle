@@ -6,9 +6,13 @@ NAME = L('Title')
 
 ART = 'art-default.jpg'
 ICON = 'icon-default.png'
+ICON_SEARCH = 'icon-search.png'
 
 MOVIES_FREE = 'http://www.blinkbox.com/Movies/Catalogue/Free'
 TV_FREE = 'http://www.blinkbox.com/TV/Catalogue/Free'
+
+SEARCH_MOVIES = 'http://www.blinkbox.com/Search/Movies?Search=%s'
+SEARCH_TV = 'http://www.blinkbox.com/Search/TV?Search=%s'
 
 ####################################################################################################
 
@@ -39,6 +43,9 @@ def MainMenu():
     
     # TV Shows
     dir.Append(Function(DirectoryItem(TVMenu, L('TVShows'))))
+    
+    # Search
+    dir.Append(Function(InputDirectoryItem(SearchMenu, L('Search'), L('SearchPrompt'), thumb = R(ICON_SEARCH))))
     
     return dir
 
@@ -319,3 +326,74 @@ def parseTvEpisodeTitle(item):
     parsed['description'] = description
     
     return parsed
+
+####################################################################################################
+# Search
+####################################################################################################
+
+def SearchMenu(sender, query):
+    dir = MediaContainer(disabledViewModes=["Coverflow"], title2 = sender.itemTitle)
+    PopulateSearchSpecific(dir, SEARCH_MOVIES % String.Quote(query))
+    PopulateSearchSpecific(dir, SEARCH_TV % String.Quote(query), is_tv = True)
+    
+    if len(dir) == 0:
+        return MessageContainer(sender.itemTitle, L('ErrorNoTitles'))
+    
+    return dir
+
+# This will perform the actual search query and interpret the results. It handles TV shows by then
+# redirecting to the TVSeasonMenu to allow the user to navigate the available seasons/episodes.
+def PopulateSearchSpecific(dir, search_url = None, is_tv = False):
+
+    search_results = HTML.ElementFromURL(search_url)
+    for item in search_results.xpath("//div[@class='movieAsset']"):
+    
+        url = item.xpath(".//a")[0].get('href')
+        thumb = item.xpath(".//img")[0].get('src')
+        if url.find("/Free/") == -1:
+            if thumb.find("o=Free") == -1:
+                continue
+            
+        title = item.xpath(".//span[@class='t1']/text()")[0]
+        summary = item.xpath(".//span[@class='msg']/text()")[0]
+        subtitle = item.xpath(".//div[@class='genres']/a/text()")[0]
+        
+        if is_tv == False:
+            dir.Append(WebVideoItem(
+                url,
+                title = title,
+                subtitle = subtitle,
+                summary = summary,
+                thumb = thumb))
+        else:
+            title_details = {}
+            title_details['name'] = title
+            title_details['url'] = url
+            title_details['image'] = thumb
+            title_details['subtitle'] = subtitle
+            title_details['description'] = summary
+            dir.Append(Function(
+                 DirectoryItem(
+                     TVSeasonMenu,
+                     title_details['name'],
+                     subtitle = title_details['subtitle'],
+                     summary = title_details['description'],
+                     thumb = title_details['image']),
+                 title_details = title_details))
+    
+    # The search page will only display a subset of the results. We therefore need to tunnel down and
+    # recursively add results from subsequent pages.
+    next_page = search_results.xpath("//a[@class='pag_forw bundle']")
+    if len(next_page) > 0:
+        
+        next_page = 2
+        base_query = search_url
+        if base_query.find('&Page=') != -1:
+            elements = search_url.split('&Page=')
+            base_query = elements[0]
+            next_page = int(elements[1]) + 1
+        
+        PopulateSearchSpecific(dir, base_query + '&Page=' + str(next_page), is_tv = is_tv)
+        pass
+            
+    pass
