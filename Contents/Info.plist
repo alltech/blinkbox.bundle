@@ -28,5 +28,10 @@
 	<array>
 		<string>GB</string>
 	</array>
+    <key>PlexSearchServices</key>
+	<dict>
+	   <key>blinkbox</key>
+	   <string>com.plexapp.search.blinkbox</string>
+	</dict>
   </dict>
 </plist>

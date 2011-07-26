@@ -1,0 +1,54 @@
+import re
+
+SEARCH_MOVIES = 'http://www.blinkbox.com/Search/Movies?Search=%s'
+SEARCH_TV = 'http://www.blinkbox.com/Search/TV?Search=%s'
+
+def Search(query):
+
+  # Create a container to hold the results
+  c = ObjectContainer()
+  SearchMovies(c, SEARCH_MOVIES % String.Quote(query))
+      
+  return c
+
+def SearchMovies(container, search_url):
+
+  search_results = HTML.ElementFromURL(search_url)
+  for item in search_results.xpath("//div[@class='movieAsset']"):
+
+    # We should only handle Free movies as this is all the plugin actually supports at the moment. If we
+    # were required to handle all movies, then you could simply remove the filter/continue statement
+    # below.
+    url = item.xpath(".//a")[0].get('href')
+    thumb = item.xpath(".//img")[0].get('src')
+    if url.find("/Free/") == -1:
+      if thumb.find("o=Free") == -1:
+        continue
+
+    # Extract all the available information
+    title = item.xpath(".//span[@class='t1']/text()")[0]
+    summary = item.xpath(".//span[@class='msg']/text()")[0]
+    genre_list = item.xpath(".//div[@class='genres']/a/text()")
+    genres = [ genre for genre in genre_list if not "," ]
+
+    container.add(MovieObject(
+      title = title,
+      summary = summary,
+      thumb = thumb,
+      genres = genres,
+      url = url))
+
+  # The search page will only display a subset of the results. We therefore need to tunnel down and
+  # recursively add results from subsequent pages.
+  next_page = search_results.xpath("//a[@class='pag_forw bundle']")
+  if len(next_page) > 0:
+        
+    next_page = 2
+    base_query = search_url
+    if base_query.find('&Page=') != -1:
+      elements = search_url.split('&Page=')
+      base_query = elements[0]
+      next_page = int(elements[1]) + 1
+        
+    SearchMovies(container, base_query + '&Page=' + str(next_page))
+  pass
