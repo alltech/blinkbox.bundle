@@ -394,6 +394,5 @@ def PopulateSearchSpecific(dir, search_url = None, is_tv = False):
             next_page = int(elements[1]) + 1
         
         PopulateSearchSpecific(dir, base_query + '&Page=' + str(next_page), is_tv = is_tv)
-        pass
             
     pass

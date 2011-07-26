@@ -8,7 +8,7 @@ def Search(query):
   # Create a container to hold the results
   c = ObjectContainer()
   SearchMovies(c, SEARCH_MOVIES % String.Quote(query))
-      
+  SearchTV(c, SEARCH_TV % String.Quote(query))
   return c
 
 def SearchMovies(container, search_url):
@@ -52,3 +52,88 @@ def SearchMovies(container, search_url):
         
     SearchMovies(container, base_query + '&Page=' + str(next_page))
   pass
+
+def SearchTV(container, search_url):
+
+  search_results = HTML.ElementFromURL(search_url)
+  for item in search_results.xpath("//div[@class='movieAsset']"):
+
+    # We should only handle Free movies as this is all the plugin actually supports at the moment. If we
+    # were required to handle all movies, then you could simply remove the filter/continue statement
+    # below.
+    url = item.xpath(".//a")[0].get('href')
+    thumb = item.xpath(".//img")[0].get('src')
+    if url.find("/Free/") == -1:
+      if thumb.find("o=Free") == -1:
+        continue
+
+    ProcessTVShow(container, url)
+
+  # The search page will only display a subset of the results. We therefore need to tunnel down and
+  # recursively add results from subsequent pages.
+  next_page = search_results.xpath("//a[@class='pag_forw bundle']")
+  if len(next_page) > 0:
+        
+    next_page = 2
+    base_query = search_url
+    if base_query.find('&Page=') != -1:
+      elements = search_url.split('&Page=')
+      base_query = elements[0]
+      next_page = int(elements[1]) + 1
+        
+    SearchTV(container, base_query + '&Page=' + str(next_page))
+  pass
+
+def ProcessTVShow(container, show_url):
+
+  tv_seasons = HTML.ElementFromURL(show_url)
+  for season in tv_seasons.xpath("//div[@id='selectSeries']/a"):
+ 
+    # We shouldn't show the option to display all series.
+    if season.get('class') == "showAll":
+        continue
+
+    season_url = season.get('href')
+    ProcessTVSeason(container, season_url)
+
+  pass
+
+def ProcessTVSeason(container, season_url):
+
+  tv_episodes = HTML.ElementFromURL(season_url)
+
+  # Determine the show name based upon the main header of the page.
+  tmp = tv_episodes.xpath("//h1[@class='title']/text()")
+  tmp = [ item.strip() for item in tmp ]
+  tmp = filter(None, tmp)
+  show = tmp[0]
+
+  # We should also be able to determine the actual season number from the currently
+  # active selection.
+  season = int(tv_episodes.xpath("//div[@id='selectSeries']/a[@class='on']/text()")[0])
+  for episode in tv_episodes.xpath("//div[@class='assetDetailed c']"):
+
+    # Obtain the episode number, if available.
+    index = None
+    index_full = episode.xpath(".//p[@class='header']/text()")[0]
+    index_match = re.match(".*Episode (?P<index>[0-9]+).*", index_full)
+    if index_match:
+        index = int(index_match.groupdict()['index'])
+
+    # Extract the available information
+    title = episode.xpath(".//p[@class='title']/a/text()")[0]
+    url = episode.xpath(".//p[@class='title']/a")[0].get('href')
+    image = episode.xpath(".//img")[0].get('src')
+    description = episode.xpath(".//p[@class='info']/text()")[0]
+
+    container.add(EpisodeObject(
+      title = title,
+      show = show,
+      season = season,
+      index = index,
+      thumb = image,
+      summary = description,
+      url = url))
+
+  pass
+      
